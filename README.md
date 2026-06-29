@@ -94,4 +94,6 @@ Replace `dataset/phishing_dataset.csv` with the
 [PhiUSIIL Phishing URL Dataset](https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset)
 from UCI for production accuracy.
 
+<img width="1917" height="1030" alt="Screenshot 2026-06-29 160505" src="https://github.com/user-attachments/assets/753d67f2-383a-48c7-a268-15b4fa070778" />
+
 
