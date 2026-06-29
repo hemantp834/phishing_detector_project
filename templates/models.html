@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Model Comparison — PhishGuard AI{% endblock %}
+{% block topbar_title %}Model Comparison{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-heading au">
+  <h1>Model Comparison</h1>
+  <p>Performance metrics for all 5 classifiers trained on the PhiUSIIL dataset (235,795 URLs)</p>
+</div>
+
+{% if m_results %}
+
+<!-- charts -->
+<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.25rem;margin-bottom:1.25rem;">
+  <div class="card au">
+    <div class="card-header">
+      <div class="card-icon ci-purple"><i class="bi bi-pentagon"></i></div>
+      <span class="card-header-label">Radar — All Metrics</span>
+    </div>
+    <div class="card-body"><canvas id="radarChart" height="220"></canvas></div>
+  </div>
+  <div class="card au au-1">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><i class="bi bi-bar-chart-steps"></i></div>
+      <span class="card-header-label">Side-by-Side Comparison</span>
+    </div>
+    <div class="card-body"><canvas id="groupBar" height="170"></canvas></div>
+  </div>
+</div>
+
+<!-- model cards -->
+{% set palette = [
+  ('ci-blue',   'var(--accent)', 'var(--accent-lt)', 'var(--accent-bd)'),
+  ('ci-purple', 'var(--purple)', 'var(--purple-lt)', '#ddd6fe'),
+  ('ci-green',  'var(--safe)',   'var(--safe-lt)',   'var(--safe-bd)'),
+  ('ci-amber',  'var(--warn)',   'var(--warn-lt)',   'var(--warn-bd)'),
+  ('ci-red',    'var(--danger)', 'var(--danger-lt)', 'var(--danger-bd)')
+] %}
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;">
+  {% for mname, m in m_results.items() %}
+  {% set ci, clr, lt, bd = palette[loop.index0 % palette|length] %}
+  <div class="card au au-{{ loop.index }}" style="border-top:2px solid {{ clr }};">
+    <div class="card-header" style="padding:.85rem 1.1rem;">
+      <div class="card-icon {{ ci }}" style="width:28px;height:28px;font-size:.8rem;"><i class="bi bi-cpu"></i></div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:{{ clr }};line-height:1.2;">{{ model_labels.get(mname, mname) }}</div>
+      </div>
+    </div>
+    <div style="padding:.85rem 1.1rem;">
+      {% for key, label in [('accuracy','Accuracy'),('precision','Precision'),('recall','Recall'),('f1_score','F1 Score')] %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:.72rem;color:var(--text3);">{{ label }}</span>
+        <span style="font-family:var(--mono);font-size:.78rem;font-weight:600;color:{{ clr }};">{{ m[key] }}%</span>
+      </div>
+      {% endfor %}
+
+      {% if m.confusion_matrix %}
+      {% set cm = m.confusion_matrix %}
+      <div style="margin-top:.75rem;">
+        <div style="font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Confusion Matrix</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          {% for lbl, val, c in [('TN',cm[0][0],'var(--safe)'),('FP',cm[0][1],'var(--danger)'),('FN',cm[1][0],'var(--danger)'),('TP',cm[1][1],'var(--safe)')] %}
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px;text-align:center;">
+            <div style="font-size:.6rem;color:var(--text3);">{{ lbl }}</div>
+            <div style="font-family:var(--mono);font-size:.9rem;font-weight:700;color:{{ c }};">{{ val }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card au" style="text-align:center;padding:4rem 2rem;">
+  <div class="card-icon ci-blue" style="width:56px;height:56px;font-size:1.4rem;margin:0 auto 1rem;"><i class="bi bi-cpu"></i></div>
+  <p style="color:var(--text3);">Run <strong>python train_models.py</strong> to generate model data.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const mResults = {{ m_results | tojson }};
+const modelLabels = {{ model_labels | tojson }};
+const COLORS = ['#2563eb','#7c3aed','#16a34a','#ca8a04','#dc2626'];
+const TEXT3='#8a94a6', BORDER='#e3e7f0';
+
+Chart.defaults.color = TEXT3;
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.font.size = 11;
+
+const names = Object.keys(mResults).map(k => modelLabels[k]||k);
+const accs  = Object.values(mResults).map(v=>v.accuracy);
+const precs = Object.values(mResults).map(v=>v.precision);
+const recs  = Object.values(mResults).map(v=>v.recall);
+const f1s   = Object.values(mResults).map(v=>v.f1_score);
+
+new Chart(document.getElementById('radarChart'), {
+  type:'radar',
+  data:{
+    labels:['Accuracy','Precision','Recall','F1 Score'],
+    datasets: Object.entries(mResults).map(([k,m],i)=>({
+      label: modelLabels[k]||k,
+      data:[m.accuracy,m.precision,m.recall,m.f1_score],
+      borderColor:COLORS[i], backgroundColor:COLORS[i]+'18',
+      pointBackgroundColor:COLORS[i], borderWidth:2, pointRadius:3
+    }))
+  },
+  options:{
+    scales:{ r:{ min:0,max:105, grid:{color:BORDER}, angleLines:{color:BORDER}, ticks:{display:false} } },
+    plugins:{ legend:{ position:'bottom', labels:{ padding:12, boxWidth:9 } } }
+  }
+});
+
+new Chart(document.getElementById('groupBar'),{
+  type:'bar',
+  data:{
+    labels:names,
+    datasets:[
+      {label:'Accuracy', data:accs,  backgroundColor:COLORS[0]+'33',borderColor:COLORS[0],borderWidth:2,borderRadius:5},
+      {label:'Precision',data:precs, backgroundColor:COLORS[1]+'33',borderColor:COLORS[1],borderWidth:2,borderRadius:5},
+      {label:'Recall',   data:recs,  backgroundColor:COLORS[2]+'33',borderColor:COLORS[2],borderWidth:2,borderRadius:5},
+      {label:'F1 Score', data:f1s,   backgroundColor:COLORS[3]+'33',borderColor:COLORS[3],borderWidth:2,borderRadius:5}
+    ]
+  },
+  options:{
+    scales:{
+      y:{min:0,max:105,grid:{color:BORDER},ticks:{callback:v=>v+'%'}},
+      x:{grid:{display:false}}
+    },
+    plugins:{legend:{position:'top',labels:{padding:12,boxWidth:9}}}
+  }
+});
+</script>
+{% endblock %}

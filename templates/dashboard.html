@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PhishGuard AI{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- stat row -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;">
+  <div class="stat-card au">
+    <div class="stat-icon ci-blue"><i class="bi bi-terminal"></i></div>
+    <div>
+      <div class="stat-num" style="color:var(--accent);">{{ stats.total }}</div>
+      <div class="stat-label">Total Scans</div>
+    </div>
+  </div>
+  <div class="stat-card au au-1">
+    <div class="stat-icon ci-green"><i class="bi bi-shield-check"></i></div>
+    <div>
+      <div class="stat-num" style="color:var(--safe);">{{ stats.safe }}</div>
+      <div class="stat-label">Safe URLs</div>
+    </div>
+  </div>
+  <div class="stat-card au au-2">
+    <div class="stat-icon ci-red"><i class="bi bi-bug"></i></div>
+    <div>
+      <div class="stat-num" style="color:var(--danger);">{{ stats.phishing }}</div>
+      <div class="stat-label">Phishing URLs</div>
+    </div>
+  </div>
+  <div class="stat-card au au-3">
+    <div class="stat-icon ci-purple"><i class="bi bi-trophy"></i></div>
+    <div>
+      <div class="stat-num" style="color:var(--purple);font-size:1rem;padding-top:.35rem;">
+        {{ best_model | replace('_',' ') | title }}
+      </div>
+      <div class="stat-label">Best Model</div>
+    </div>
+  </div>
+</div>
+
+<!-- charts row -->
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:1.25rem;margin-bottom:1.25rem;">
+  <div class="card au au-1">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><i class="bi bi-pie-chart"></i></div>
+      <span class="card-header-label">Threat Distribution</span>
+    </div>
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;padding:1.5rem;">
+      <div style="max-width:210px;width:100%;"><canvas id="pieChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card au au-2">
+    <div class="card-header">
+      <div class="card-icon ci-purple"><i class="bi bi-bar-chart"></i></div>
+      <span class="card-header-label">Model Accuracy Comparison</span>
+    </div>
+    <div class="card-body"><canvas id="accChart" height="105"></canvas></div>
+  </div>
+</div>
+
+<!-- metrics + recent -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+  <div class="card au au-2">
+    <div class="card-header">
+      <div class="card-icon ci-green"><i class="bi bi-table"></i></div>
+      <span class="card-header-label">Model Performance</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+        </thead>
+        <tbody>
+          {% for mname, m in m_results.items() %}
+          <tr>
+            <td style="font-weight:500;">
+              {% if mname == best_model %}<i class="bi bi-star-fill me-1" style="color:var(--warn);font-size:.75rem;"></i>{% endif %}
+              {{ model_labels.get(mname, mname) }}
+            </td>
+            <td><span style="color:var(--safe);font-weight:600;font-family:var(--mono);font-size:.8rem;">{{ m.accuracy }}%</span></td>
+            <td style="color:var(--text2);font-family:var(--mono);font-size:.8rem;">{{ m.precision }}%</td>
+            <td style="color:var(--text2);font-family:var(--mono);font-size:.8rem;">{{ m.recall }}%</td>
+            <td style="color:var(--accent);font-family:var(--mono);font-size:.8rem;">{{ m.f1_score }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card au au-3">
+    <div class="card-header">
+      <div class="card-icon ci-red"><i class="bi bi-clock-history"></i></div>
+      <span class="card-header-label">Recent Scans</span>
+      <a href="/history" class="btn-secondary btn-sm ms-auto">View all</a>
+    </div>
+    <div>
+      {% if recent %}
+        {% for scan in recent %}
+        <div style="display:flex;align-items:center;gap:10px;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
+          <div style="overflow:hidden;flex:1;min-width:0;">
+            <div style="font-family:var(--mono);font-size:.72rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ scan.url }}</div>
+            <div style="font-size:.68rem;color:var(--text3);margin-top:2px;">{{ scan.timestamp }}</div>
+          </div>
+          <span class="badge {% if scan.label=='Phishing' %}badge-danger{% else %}badge-safe{% endif %}">{{ scan.label }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:2rem;text-align:center;color:var(--text3);font-size:.82rem;">
+          No scans yet. <a href="/" style="color:var(--accent);">Scan a URL →</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const safe = {{ stats.safe }}, phishing = {{ stats.phishing }};
+const mResults = {{ m_results | tojson }};
+const ACCENT='#2563eb', SAFE='#16a34a', DANGER='#dc2626', PURPLE='#7c3aed', WARN='#ca8a04';
+const BG2='#eaecf4', BORDER='#e3e7f0', TEXT3='#8a94a6';
+
+Chart.defaults.color = TEXT3;
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.font.size = 11;
+
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Safe', 'Phishing'],
+    datasets: [{
+      data: [safe || 0, phishing || 0],
+      backgroundColor: [SAFE+'28', DANGER+'28'],
+      borderColor: [SAFE, DANGER],
+      borderWidth: 2, hoverOffset: 4
+    }]
+  },
+  options: { cutout:'68%', plugins:{ legend:{ position:'bottom', labels:{ padding:14, boxWidth:10 } } } }
+});
+
+const names = Object.keys(mResults).map(k => k.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase()));
+const accs  = Object.values(mResults).map(v => v.accuracy);
+const f1s   = Object.values(mResults).map(v => v.f1_score);
+
+new Chart(document.getElementById('accChart'), {
+  type: 'bar',
+  data: {
+    labels: names,
+    datasets: [
+      { label:'Accuracy %', data:accs, backgroundColor:ACCENT+'33', borderColor:ACCENT, borderWidth:2, borderRadius:6 },
+      { label:'F1 Score %', data:f1s,  backgroundColor:PURPLE+'33', borderColor:PURPLE, borderWidth:2, borderRadius:6 }
+    ]
+  },
+  options: {
+    scales: {
+      y: { min:0, max:105, grid:{color:BORDER}, ticks:{callback:v=>v+'%'} },
+      x: { grid:{display:false} }
+    },
+    plugins: { legend:{ position:'top', labels:{ padding:14, boxWidth:10 } } }
+  }
+});
+</script>
+{% endblock %}

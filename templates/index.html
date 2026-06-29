@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}URL Scanner — PhishGuard AI{% endblock %}
+{% block topbar_title %}URL Scanner{% endblock %}
+
+{% block content %}
+<div style="max-width:760px; margin:0 auto;">
+
+  <!-- heading -->
+  <div class="page-heading au">
+    <h1>Scan a URL for threats</h1>
+    <p>Paste any URL below. Our ensemble of 5 ML models will analyse it instantly.</p>
+  </div>
+
+  <!-- scan card -->
+  <div class="card au au-1" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+      <div class="card-icon ci-blue"><i class="bi bi-search"></i></div>
+      <span class="card-header-label">URL Threat Scanner</span>
+      {% if not models_loaded %}
+      <span class="badge badge-warn ms-auto"><i class="bi bi-exclamation-triangle"></i> Models not trained</span>
+      {% else %}
+      <span class="badge badge-safe ms-auto"><i class="bi bi-check-circle"></i> Ready</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if not models_loaded %}
+      <div class="indicator ind-warning mb-3">
+        <i class="bi bi-exclamation-triangle-fill ind-icon"></i>
+        No trained models found. Run <strong>python train_models.py</strong> before scanning.
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/scan" id="scanForm">
+        <div class="mb-4">
+          <label class="field-label">Target URL</label>
+          <input name="url" id="urlInput" type="text" class="input input-lg input-mono"
+                 placeholder="https://example.com/page?ref=login&token=abc"
+                 required autocomplete="off" spellcheck="false"/>
+          <div style="font-size:.71rem; color:var(--text3); margin-top:5px;">
+            Enter the full URL including <code style="font-family:var(--mono);background:var(--bg2);padding:1px 5px;border-radius:4px;font-size:.75em;">https://</code>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
+          <div>
+            <label class="field-label">Detection Model</label>
+            <select name="model" class="input">
+              <option value="ensemble">⚡ Ensemble — All 5 Models</option>
+              {% for name in model_names %}
+              <option value="{{ name }}">{{ model_labels[name] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Quick examples</label>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-secondary" style="flex:1;" onclick="fillExample('safe')">
+                <i class="bi bi-check-circle" style="color:var(--safe);"></i> Safe URL
+              </button>
+              <button type="button" class="btn-secondary" style="flex:1;" onclick="fillExample('phish')">
+                <i class="bi bi-x-circle" style="color:var(--danger);"></i> Phishing URL
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary btn-primary-lg" style="width:100%;" id="scanBtn">
+          <i class="bi bi-radar"></i> Analyse URL
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- feature tiles -->
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;">
+    {% for icon, ci, title, desc in [
+      ('bi-layers-half','ci-blue','28 Features Extracted','URL entropy, TLD risk, IP detection, keyword patterns, subdomain depth and more.'),
+      ('bi-diagram-3','ci-purple','5 ML Models','Random Forest, XGBoost, KNN, Naive Bayes and Decision Tree — voted by ensemble.'),
+      ('bi-shield-check','ci-green','Explainable Results','Each scan shows suspicious indicators, risk score 0–100 and confidence percentage.'),
+      ('bi-graph-up','ci-amber','Analytics Dashboard','Charts, history, CSV export and side-by-side model accuracy comparison.')
+    ] %}
+    <div class="card au au-{{ loop.index }}">
+      <div class="card-body" style="display:flex; gap:14px; align-items:flex-start;">
+        <div class="card-icon {{ ci }}" style="margin-top:2px;"><i class="bi {{ icon }}"></i></div>
+        <div>
+          <div style="font-size:.88rem; font-weight:600; color:var(--text); margin-bottom:3px;">{{ title }}</div>
+          <div style="font-size:.78rem; color:var(--text3); line-height:1.5;">{{ desc }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const URLS = {
+  safe:  'https://www.github.com/python/cpython',
+  phish: 'http://paypal-account-verify-login.suspicious-domain.tk/secure/update?user=admin'
+};
+function fillExample(t) {
+  document.getElementById('urlInput').value = URLS[t];
+  document.getElementById('urlInput').focus();
+}
+document.getElementById('scanForm').addEventListener('submit', function() {
+  const btn = document.getElementById('scanBtn');
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width:14px;height:14px;border-width:2px;"></span>Analysing…';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

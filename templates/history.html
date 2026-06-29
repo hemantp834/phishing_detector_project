@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Scan History — PhishGuard AI{% endblock %}
+{% block topbar_title %}Scan History{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+  <div class="page-heading" style="margin-bottom:0;">
+    <h1>Scan History</h1>
+    <p>{{ history | length }} records stored in session memory</p>
+  </div>
+  <div style="display:flex;gap:.6rem;">
+    <a href="/history/export" class="btn-secondary"><i class="bi bi-download"></i> Export CSV</a>
+    <form method="POST" action="/history/clear" style="margin:0;" onsubmit="return confirm('Clear all history?')">
+      <button type="submit" class="btn-secondary btn-danger"><i class="bi bi-trash3"></i> Clear All</button>
+    </form>
+  </div>
+</div>
+
+{% if history %}
+<div class="card au">
+  <div class="card-header">
+    <div class="card-icon ci-blue"><i class="bi bi-database"></i></div>
+    <span class="card-header-label">Scan Log</span>
+    <div class="ms-auto" style="max-width:260px;">
+      <input type="text" id="searchInput" class="input" style="height:32px;font-size:.75rem;" placeholder="Filter by URL, label, model…"/>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table" id="histTable">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>URL</th>
+          <th>Label</th>
+          <th>Confidence</th>
+          <th>Risk</th>
+          <th>Model</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, scan in enumerate(history) %}
+        <tr>
+          <td style="color:var(--text3);font-size:.75rem;">{{ i+1 }}</td>
+          <td style="max-width:340px;">
+            <div style="font-family:var(--mono);font-size:.72rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;">{{ scan.url }}</div>
+          </td>
+          <td><span class="badge {% if scan.label=='Phishing' %}badge-danger{% else %}badge-safe{% endif %}">{{ scan.label }}</span></td>
+          <td>
+            <span style="font-family:var(--mono);font-size:.8rem;font-weight:600;color:{% if scan.label=='Phishing' %}var(--danger){% else %}var(--safe){% endif %};">{{ scan.confidence }}%</span>
+          </td>
+          <td>
+            {% set rs = scan.risk_score %}
+            <span style="font-family:var(--mono);font-size:.8rem;font-weight:600;color:{% if rs>=55 %}var(--danger){% elif rs>=30 %}var(--warn){% else %}var(--safe){% endif %};">{{ rs }}/100</span>
+          </td>
+          <td style="color:var(--text3);font-size:.78rem;">{{ scan.model | replace('_',' ') | title }}</td>
+          <td style="color:var(--text3);font-size:.73rem;white-space:nowrap;">{{ scan.timestamp }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card au" style="text-align:center;padding:4rem 2rem;">
+  <div class="card-icon ci-blue" style="width:56px;height:56px;font-size:1.4rem;margin:0 auto 1rem;"><i class="bi bi-inbox"></i></div>
+  <h2 style="font-size:1.05rem;font-weight:700;margin-bottom:.4rem;">No scan history yet</h2>
+  <p style="color:var(--text3);font-size:.82rem;margin-bottom:1.5rem;">Scan your first URL to start building a history.</p>
+  <a href="/" class="btn-primary">← Go to Scanner</a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('searchInput')?.addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#histTable tbody tr').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

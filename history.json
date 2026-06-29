@@ -1,0 +1,98 @@
+[
+  {
+    "url": "http://paypal-account-verify-login.suspicious-domain.tk/secure/update?user=admin",
+    "label": "Phishing",
+    "confidence": 95.02,
+    "risk_score": 100,
+    "model": "ensemble",
+    "timestamp": "2026-06-26 11:04:20"
+  },
+  {
+    "url": "https://dsa.apnacollege.in/sheet/dsa-sheet",
+    "label": "Safe",
+    "confidence": 73.98,
+    "risk_score": 5,
+    "model": "ensemble",
+    "timestamp": "2026-06-26 11:04:08"
+  },
+  {
+    "url": "https://open.spotify.com/artist/3OQRPFFS3OsltFjFAXu1kE",
+    "label": "Safe",
+    "confidence": 78.56,
+    "risk_score": 4,
+    "model": "ensemble",
+    "timestamp": "2026-06-26 11:03:51"
+  },
+  {
+    "url": "https://www.github.com/python/cpython",
+    "label": "Safe",
+    "confidence": 76.24,
+    "risk_score": 5,
+    "model": "ensemble",
+    "timestamp": "2026-06-26 11:03:18"
+  },
+  {
+    "url": "http://paypal-account-verify-login.suspicious-domain.tk/secure/update?user=admin",
+    "label": "Phishing",
+    "confidence": 95.02,
+    "risk_score": 100,
+    "model": "ensemble",
+    "timestamp": "2026-06-12 21:35:16"
+  },
+  {
+    "url": "https://dsa.apnacollege.in/",
+    "label": "Safe",
+    "confidence": 70.43,
+    "risk_score": 6,
+    "model": "ensemble",
+    "timestamp": "2026-06-12 21:34:45"
+  },
+  {
+    "url": "http://paypal-verify.tk/login",
+    "label": "Phishing",
+    "confidence": 99.33,
+    "risk_score": 100,
+    "model": "random_forest",
+    "timestamp": "2026-06-12 10:13:21"
+  },
+  {
+    "url": "https://google.com",
+    "label": "Phishing",
+    "confidence": 92.17,
+    "risk_score": 54,
+    "model": "ensemble",
+    "timestamp": "2026-06-12 10:13:21"
+  },
+  {
+    "url": "http://paypal-verify.tk/login",
+    "label": "Safe",
+    "confidence": 59.0,
+    "risk_score": 43,
+    "model": "random_forest",
+    "timestamp": "2026-06-12 04:21:53"
+  },
+  {
+    "url": "https://google.com",
+    "label": "Safe",
+    "confidence": 99.99,
+    "risk_score": 3,
+    "model": "ensemble",
+    "timestamp": "2026-06-12 04:21:53"
+  },
+  {
+    "url": "https://github.com/python/cpython",
+    "label": "Safe",
+    "confidence": 100.0,
+    "risk_score": 0,
+    "model": "random_forest",
+    "timestamp": "2026-06-11 04:35:40"
+  },
+  {
+    "url": "http://paypal-verify.suspicious.tk/login?id=123",
+    "label": "Phishing",
+    "confidence": 90.79,
+    "risk_score": 85,
+    "model": "ensemble",
+    "timestamp": "2026-06-11 04:35:40"
+  }
+]

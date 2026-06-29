@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Scan Result — PhishGuard AI{% endblock %}
+{% block topbar_title %}Scan Result{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="card" style="max-width:520px;margin:3rem auto;text-align:center;">
+  <div class="card-body" style="padding:3rem 2rem;">
+    <div class="card-icon ci-red" style="width:52px;height:52px;margin:0 auto 1rem;font-size:1.4rem;"><i class="bi bi-exclamation-triangle"></i></div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem;">Something went wrong</h2>
+    <p style="color:var(--text3);font-size:.83rem;margin-bottom:1.5rem;">{{ error }}</p>
+    <a href="/" class="btn-primary">← Back to Scanner</a>
+  </div>
+</div>
+{% else %}
+
+{% set isp = result.label == 'Phishing' %}
+{% set rs  = result.risk_score %}
+{% set risk_level = 'Critical' if rs >= 75 else ('High' if rs >= 55 else ('Medium' if rs >= 30 else 'Low')) %}
+{% set risk_ci    = 'ci-red' if rs >= 55 else ('ci-amber' if rs >= 30 else 'ci-green') %}
+
+<!-- ── Row 1: Verdict + detail ───────────────────────────────── -->
+<div style="display:grid; grid-template-columns:300px 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+
+  <!-- Verdict card -->
+  <div class="card au" style="border-top:3px solid {% if isp %}var(--danger){% else %}var(--safe){% endif %};">
+    <div class="card-body" style="text-align:center; padding:2rem 1.5rem;">
+      <div class="card-icon {% if isp %}ci-red{% else %}ci-green{% endif %}"
+           style="width:60px;height:60px;font-size:1.6rem;margin:0 auto 1rem;">
+        <i class="bi {% if isp %}bi-shield-fill-x{% else %}bi-shield-fill-check{% endif %}"></i>
+      </div>
+
+      <div style="font-size:1.6rem; font-weight:800; letter-spacing:-.02em;
+                  color:{% if isp %}var(--danger){% else %}var(--safe){% endif %};
+                  margin-bottom:.25rem;">
+        {{ result.label }}
+      </div>
+      <div style="font-size:.72rem; color:var(--text3); text-transform:uppercase; letter-spacing:.07em; margin-bottom:1.5rem;">
+        URL Detected
+      </div>
+
+      <!-- Confidence -->
+      <div style="margin-bottom:1.25rem; text-align:left;">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;font-weight:600;color:var(--text2);margin-bottom:6px;">
+          <span>Confidence</span>
+          <span style="color:{% if isp %}var(--danger){% else %}var(--safe){% endif %};">{{ result.confidence }}%</span>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill {% if isp %}prog-red{% else %}prog-green{% endif %}" style="width:{{ result.confidence }}%;"></div>
+        </div>
+      </div>
+
+      <!-- Risk score -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.5rem;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem .5rem;text-align:center;">
+          <div style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em;
+                      color:{% if rs>=55 %}var(--danger){% elif rs>=30 %}var(--warn){% else %}var(--safe){% endif %};">
+            {{ rs }}
+          </div>
+          <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Risk Score</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem .5rem;text-align:center;">
+          <div style="font-size:1rem;font-weight:700;
+                      color:{% if rs>=55 %}var(--danger){% elif rs>=30 %}var(--warn){% else %}var(--safe){% endif %};">
+            {{ risk_level }}
+          </div>
+          <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Risk Level</div>
+        </div>
+      </div>
+
+      <!-- URL display -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.65rem .85rem;
+                  font-family:var(--mono);font-size:.7rem;color:var(--text2);text-align:left;word-break:break-all;line-height:1.5;">
+        {{ result.url }}
+      </div>
+
+      <a href="/" class="btn-secondary" style="width:100%;margin-top:1rem;justify-content:center;">
+        <i class="bi bi-arrow-left"></i> Scan Another
+      </a>
+    </div>
+  </div>
+
+  <!-- Right: ensemble / model + indicators -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Ensemble or single model -->
+    {% if result.is_ensemble %}
+    <div class="card au au-1">
+      <div class="card-header">
+        <div class="card-icon ci-purple"><i class="bi bi-diagram-3"></i></div>
+        <span class="card-header-label">Ensemble Voting</span>
+        <span class="card-header-sub ms-auto">
+          {{ result.votes.Safe }} safe &nbsp;·&nbsp; {{ result.votes.Phishing }} phishing
+        </span>
+      </div>
+      <div class="card-body" style="padding:1rem 1.5rem;">
+        {% for mkey, mval in result.individual.items() %}
+        {% set mc = 'var(--danger)' if mval.label == 'Phishing' else 'var(--safe)' %}
+        <div class="ens-row">
+          <div class="ens-name">{{ model_labels[mkey] }}</div>
+          <div class="ens-bar">
+            <div class="prog-track">
+              <div class="prog-fill" style="width:{{ mval.confidence }}%;background:{{ mc }};"></div>
+            </div>
+          </div>
+          <div class="ens-val" style="color:{{ mc }};">
+            <span class="badge {% if mval.label=='Phishing' %}badge-danger{% else %}badge-safe{% endif %}" style="margin-right:6px;">{{ mval.label }}</span>{{ mval.confidence }}%
+          </div>
+        </div>
+        {% endfor %}
+        <div style="margin-top:.85rem;background:{% if isp %}var(--danger-lt){% else %}var(--safe-lt){% endif %};
+                    border:1px solid {% if isp %}var(--danger-bd){% else %}var(--safe-bd){% endif %};
+                    border-radius:var(--r);padding:.6rem 1rem;font-size:.78rem;text-align:center;
+                    color:{% if isp %}var(--danger){% else %}var(--safe){% endif %};font-weight:600;">
+          Majority vote → {{ result.label }} ({{ result.votes.Safe }} : {{ result.votes.Phishing }})
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card au au-1">
+      <div class="card-header">
+        <div class="card-icon ci-purple"><i class="bi bi-cpu"></i></div>
+        <span class="card-header-label">Model Used</span>
+      </div>
+      <div class="card-body" style="font-size:.92rem;font-weight:600;color:var(--text);">
+        {{ result.model_label }}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Suspicious indicators -->
+    <div class="card au au-2" style="flex:1;">
+      <div class="card-header">
+        <div class="card-icon ci-red"><i class="bi bi-exclamation-triangle"></i></div>
+        <span class="card-header-label">Suspicious Indicators</span>
+        <span class="card-header-sub ms-auto">{{ result.indicators | length }} found</span>
+      </div>
+      <div class="card-body" style="padding:1rem 1.5rem;">
+        {% if result.indicators %}
+          {% for sev, msg in result.indicators %}
+          <div class="indicator ind-{{ sev }}">
+            <i class="bi bi-{% if sev=='danger' %}x-octagon-fill{% elif sev=='warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} ind-icon"></i>
+            {{ msg }}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="indicator ind-ok">
+            <i class="bi bi-check-circle-fill ind-icon"></i>
+            No suspicious indicators detected — URL appears clean.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Row 2: Features ───────────────────────────────────────── -->
+<div class="card au au-3">
+  <div class="card-header">
+    <div class="card-icon ci-blue"><i class="bi bi-sliders"></i></div>
+    <span class="card-header-label">Extracted Features</span>
+    <span class="card-header-sub ms-auto">28 features analysed</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0 2rem;">
+      {% set feats = [
+        ('url_length','URL Length'),('domain_length','Domain Len'),('path_length','Path Len'),
+        ('num_dots','Dots'),('num_hyphens','Hyphens'),('num_subdomains','Subdomains'),
+        ('has_https','HTTPS'),('has_ip','IP Address'),('suspicious_keyword_count','Keywords'),
+        ('has_shortener','URL Shortener'),('has_at_symbol','@ Symbol'),('has_redirect','Redirect //'),
+        ('suspicious_tld','Susp. TLD'),('legitimate_tld','Legit TLD'),
+        ('url_entropy','URL Entropy'),('domain_entropy','Domain Entropy'),
+        ('has_encoding','Encoding'),('digit_ratio','Digit Ratio'),
+        ('num_digits','Digits'),('special_char_count','Special Chars'),
+        ('num_slashes','Slashes'),('num_question_marks','Query Params')
+      ] %}
+      {% for key, label in feats %}
+        {% if key in result.features %}
+        <div class="feat-row">
+          <span class="feat-key">{{ label }}</span>
+          <span class="feat-val">{{ result.features[key] }}</span>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
